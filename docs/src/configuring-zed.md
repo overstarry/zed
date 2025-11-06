@@ -3185,6 +3185,12 @@ Non-negative `integer` values
 - Setting: `search_wrap`
 - Default: `true`
 
+## Center on Match
+
+- Description: If `center_on_match` is enabled, the editor will center the cursor on the current match when searching.
+- Setting: `center_on_match`
+- Default: `false`
+
 ## Seed Search Query From Cursor
 
 - Description: When to populate a new search's query based on the text under the cursor.
@@ -4655,6 +4661,44 @@ For example, to use `Nerd Font` as a fallback, add the following to your setting
 **Options**
 
 `integer` values between `100` and `900`
+
+## Settings Profiles
+
+- Description: Configure any number of settings profiles that are temporarily applied on top of your existing user settings when selected from `settings profile selector: toggle`.
+- Setting: `profiles`
+- Default: `{}`
+
+In your `settings.json` file, add the `profiles` object.
+Each key within this object is the name of a settings profile, and each value is an object that can include any of Zed's settings.
+
+Example:
+
+```json [settings]
+"profiles": {
+  "Presenting (Dark)": {
+    "agent_buffer_font_size": 18.0,
+    "buffer_font_size": 18.0,
+    "theme": "One Dark",
+    "ui_font_size": 18.0
+  },
+  "Presenting (Light)": {
+    "agent_buffer_font_size": 18.0,
+    "buffer_font_size": 18.0,
+    "theme": "One Light",
+    "ui_font_size": 18.0
+  },
+  "Writing": {
+    "agent_buffer_font_size": 15.0,
+    "buffer_font_size": 15.0,
+    "theme": "Catppuccin Frappé - No Italics",
+    "ui_font_size": 15.0,
+    "tab_bar": { "show": false },
+    "toolbar": { "breadcrumbs": false }
+  }
+}
+```
+
+To preview and enable a settings profile, open the command palette via {#kb command_palette::Toggle} and search for `settings profile selector: toggle`.
 
 ## An example configuration:
 

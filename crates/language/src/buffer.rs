@@ -1573,21 +1573,24 @@ impl Buffer {
                 self.reparse = None;
             }
             Err(parse_task) => {
+                // todo(lw): hot foreground spawn
                 self.reparse = Some(cx.spawn(async move |this, cx| {
-                    let new_syntax_map = parse_task.await;
+                    let new_syntax_map = cx.background_spawn(parse_task).await;
                     this.update(cx, move |this, cx| {
-                        let grammar_changed =
+                        let grammar_changed = || {
                             this.language.as_ref().is_none_or(|current_language| {
                                 !Arc::ptr_eq(&language, current_language)
-                            });
-                        let language_registry_changed = new_syntax_map
-                            .contains_unknown_injections()
-                            && language_registry.is_some_and(|registry| {
-                                registry.version() != new_syntax_map.language_registry_version()
-                            });
-                        let parse_again = language_registry_changed
-                            || grammar_changed
-                            || this.version.changed_since(&parsed_version);
+                            })
+                        };
+                        let language_registry_changed = || {
+                            new_syntax_map.contains_unknown_injections()
+                                && language_registry.is_some_and(|registry| {
+                                    registry.version() != new_syntax_map.language_registry_version()
+                                })
+                        };
+                        let parse_again = this.version.changed_since(&parsed_version)
+                            || language_registry_changed()
+                            || grammar_changed();
                         this.did_finish_parsing(new_syntax_map, cx);
                         this.reparse = None;
                         if parse_again {
@@ -3363,7 +3366,19 @@ impl BufferSnapshot {
     pub fn syntax_layer_at<D: ToOffset>(&self, position: D) -> Option<SyntaxLayer<'_>> {
         let offset = position.to_offset(self);
         self.syntax_layers_for_range(offset..offset, false)
-            .filter(|l| l.node().end_byte() > offset)
+            .filter(|l| {
+                if let Some(ranges) = l.included_sub_ranges {
+                    ranges.iter().any(|range| {
+                        let start = range.start.to_offset(self);
+                        start <= offset && {
+                            let end = range.end.to_offset(self);
+                            offset < end
+                        }
+                    })
+                } else {
+                    l.node().start_byte() <= offset && l.node().end_byte() > offset
+                }
+            })
             .last()
     }
 
